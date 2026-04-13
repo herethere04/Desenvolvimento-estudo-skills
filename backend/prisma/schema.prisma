@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String
+  password      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  memberships   BoardMember[]
+  assignedCards Card[]        @relation("CardMembers")
+  activities    CardActivity[]
+}
+
+model Board {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  inviteCode  String        @unique @default(cuid())
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  members     BoardMember[]
+  columns     Column[]
+  tags        Tag[]
+}
+
+model BoardMember {
+  id      String @id @default(cuid())
+  role    String @default("member") // "admin" | "member"
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  String
+  board   Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId String
+
+  @@unique([userId, boardId])
+}
+
+model Column {
+  id       String @id @default(cuid())
+  name     String
+  position Int
+  color    String
+  board    Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId  String
+  cards    Card[]
+}
+
+model Card {
+  id              String         @id @default(cuid())
+  title           String
+  description     String?
+  dueDate         DateTime?
+  position        Int
+  column          Column         @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  columnId        String
+  tags            Tag[]
+  assignedMembers User[]         @relation("CardMembers")
+  activities      CardActivity[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Tag {
+  id      String @id @default(cuid())
+  name    String
+  color   String
+  board   Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId String
+  cards   Card[]
+}
+
+model CardActivity {
+  id        String   @id @default(cuid())
+  text      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  cardId    String
+}
